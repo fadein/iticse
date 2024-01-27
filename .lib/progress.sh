@@ -120,6 +120,11 @@ _tutr_progress() {
 }
 
 
+# _tutr_lesson_complete_msg disposition [final-lesson]
+#   disposition: success/failure status of the lesson
+#      $_COMPLETE means that the lesson was successfully completed
+#      any other value indicates an incomplete lesson
+#   final:  set to any value when this is the final lesson in the tutorial
 _tutr_lesson_complete_msg() {
 	cat <<-:
 
@@ -128,7 +133,11 @@ _tutr_lesson_complete_msg() {
 	You worked on this lesson for $(_tutr_pretty_time)
 	:
 
-	if (( $1 == $_COMPLETE )); then
+	local disposition=$1
+	local final=$2
+
+	[[ -n $final ]] && return
+	if (( $disposition == $_COMPLETE )); then
 		echo Run $(cmd ./tutorial.sh) to start the next lesson
 	else
 		echo Run $(cmd ./tutorial.sh) to retry this lesson

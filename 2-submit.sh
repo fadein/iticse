@@ -686,7 +686,7 @@ push_certificate_epilogue() {
 
 
 cleanup() {
-	_tutr_lesson_complete_msg $1
+	_tutr_lesson_complete_msg $1 final
 }
 
 
