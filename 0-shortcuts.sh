@@ -86,7 +86,7 @@ setup() {
 			export _BACKSPACE="  $(kbd Delete) | Erase the character to the LEFT of the cursor"
 			;;
 		*)
-			export _BACKSPACE="$(kbd Backspace)| Erase the character to the LEFT of the cursor"$'\n'"  $(kbd Delete) | Erase the character to the RIGHT the cursor"
+			export _BACKSPACE="$(kbd Backspace)| Erase the character to the LEFT of the cursor"$'\n'"  $(kbd Delete) | Erase the character to the RIGHT of the cursor"
 			;;
 	esac
 }
@@ -170,7 +170,7 @@ _tutr_install_shortcuts() {
 			  $(kbd Tab)    | Complete the command or filename at cursor
 			  $(kbd "^W")     | Kill (cut) BACKWARD from cursor to beginning of word
 			  $(kbd "^K")     | Kill FORWARD from cursor to end of line (kill)
-			  $(kbd "^Y")     | Yank (paste) text to the RIGHT the cursor
+			  $(kbd "^Y")     | Yank (paste) text to the RIGHT of the cursor
 			  $(kbd "^L")     | Clear the screen while preserving command line
 			  $(kbd "^U")     | Kill the entire command line
 			:
@@ -889,7 +889,7 @@ cutpaste_words_pre() {
 		  $(kbd Tab)    | Complete the command or filename at cursor
 		  $(kbd "^W")     | Kill (cut) BACKWARD from cursor to beginning of word
 		  $(kbd "^K")     | Kill FORWARD from cursor to end of line (kill)
-		  $(kbd "^Y")     | Yank (paste) text to the RIGHT the cursor
+		  $(kbd "^Y")     | Yank (paste) text to the RIGHT of the cursor
 		:
 	}
 }
@@ -911,7 +911,7 @@ cutpaste_words_prologue() {
 	---------|----------------------------------------------
 	  $(kbd "^W")     | Kill (cut) BACKWARD from cursor to beginning of word
 	  $(kbd "^K")     | Kill FORWARD from cursor to end of line (kill)
-	  $(kbd "^Y")     | Yank (paste) text to the RIGHT the cursor
+	  $(kbd "^Y")     | Yank (paste) text to the RIGHT of the cursor
 
 	(Reminder: run $(cmd shortcuts) to view the complete table at any time)
 
@@ -969,7 +969,7 @@ clear_pre() {
 		  $(kbd Tab)    | Complete the command or filename at cursor
 		  $(kbd "^W")     | Kill (cut) BACKWARD from cursor to beginning of word
 		  $(kbd "^K")     | Kill FORWARD from cursor to end of line (kill)
-		  $(kbd "^Y")     | Yank (paste) text to the RIGHT the cursor
+		  $(kbd "^Y")     | Yank (paste) text to the RIGHT of the cursor
 		  $(kbd "^L")     | Clear the screen while preserving command line
 		:
 	}
@@ -1052,7 +1052,7 @@ cut_line_pre() {
 		  $(kbd Tab)    | Complete the command or filename at cursor
 		  $(kbd "^W")     | Kill (cut) BACKWARD from cursor to beginning of word
 		  $(kbd "^K")     | Kill FORWARD from cursor to end of line (kill)
-		  $(kbd "^Y")     | Yank (paste) text to the RIGHT the cursor
+		  $(kbd "^Y")     | Yank (paste) text to the RIGHT of the cursor
 		  $(kbd "^L")     | Clear the screen while preserving command line
 		  $(kbd "^U")     | Kill the entire command line
 		:
