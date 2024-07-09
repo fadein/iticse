@@ -15,11 +15,22 @@ source progress.sh
 _A=1.1
 
 # Name of the starter code repo
-_REPONAME=cs1440-falor-erik-assn$_A
+_REPONAME=cs1440-winder-jaxton-assn$_A
 
 # origin of the starter code repo
-_SSH_REPO_URL=git@gitlab.cs.usu.edu:erik.falor/$_REPONAME
+_SSH_REPO_URL=git@github.com:jaxton/$_REPONAME
 
+# Should be the hostname where students are expected to push to
+_GIT_REMOTE_HOST=github.com
+
+# The instructor's username. Should be contained in the _SSH_REPO_URL
+_INSTRUCTOR_USERNAME=jaxtonw
+
+# Enforce naming standard. When set to 0 (true), force the repo naming standard of 'cs1440-LAST-FIRST-assn$_A'
+_ENFORCE_NAMING_STANDARD=1
+
+# Used to swap between GitHub/GitLab (or other platforms) dynamically
+_GIT_REMOTE_PLAT=GitHub
 
 if [[ -n $_TUTR ]]; then
 	source generic-error.sh
@@ -32,7 +43,7 @@ if [[ -n $_TUTR ]]; then
 
 	# This function is named `_Git` to avoid clashing with Zsh's `_git`
 	_Git() { (( $# == 0 )) && echo $(blu Git) || echo $(blu $*); }
-	_GitLab() { (( $# == 0 )) && echo $(cyn GitLab) || echo $(cyn $*); }
+	_GitPlat() { (( $# == 0 )) && echo $(cyn $_GIT_REMOTE_PLAT) || echo $(cyn $*); }
 	_local() { (( $# == 0 )) && echo $(ylw local) || echo $(ylw $*); }
 	_remote() { (( $# == 0 )) && echo $(mgn remote) || echo $(mgn $*); }
 	_origin() { (( $# == 0 )) && echo $(red origin) || echo $(red $*); }
@@ -65,6 +76,12 @@ setup() {
 }
 
 
+_tutr_lesson_statelog_global() {
+	_TUTR_STATE_CODE= # We don't have a meaningful and general state code yet...
+	_TUTR_STATE_TEXT=$(_tutr_git_default_text_statelog "$_REPO_PATH")
+}
+
+
 prologue() {
 	[[ -z $DEBUG ]] && clear
 	echo
@@ -77,6 +94,158 @@ prologue() {
 	PROLOGUE
 
 	_tutr_pressenter
+}
+
+
+
+commit_certificate_ff() {
+	if [[ -n $BASH ]]; then
+		local RESTORE_FAILGLOB=$(shopt -p failglob)
+		local RESTORE_NULLGLOB=$(shopt -p nullglob)
+		shopt -u failglob
+		shopt -s nullglob
+	elif [[ -n $ZSH_NAME ]]; then
+		emulate -L zsh
+		setopt null_glob local_options
+	fi
+	git add certificate.txt shell-logs*
+	git commit -m "committing certificate and log archive"
+	[[ -n $BASH ]] && eval $RESTORE_FAILGLOB && eval $RESTORE_FAILGLOB
+}
+
+commit_certificate_pre() {
+	if [[ -n $BASH ]]; then
+		local RESTORE_FAILGLOB=$(shopt -p failglob)
+		local RESTORE_NULLGLOB=$(shopt -p nullglob)
+		shopt -u failglob
+		shopt -s nullglob
+	elif [[ -n $ZSH_NAME ]]; then
+		emulate -L zsh
+		setopt null_glob local_options
+	fi
+	ARCHIVE=(*.zip *.tgz)
+	[[ -n $BASH ]] && eval $RESTORE_FAILGLOB && eval $RESTORE_FAILGLOB
+}
+
+commit_certificate_prologue() {
+	if [[ -n ${ARCHIVE[@]} ]]; then
+		cat <<-:
+		The certificate comes in two parts
+		  - A text file named $(path certificate.txt)
+		  - An archive called $(path ${ARCHIVE[0]})
+
+		Now add and commit the certificate and archive files.
+		:
+	else
+		cat <<-:
+		Now add and commit the certificate.
+		:
+	fi
+}
+
+commit_certificate_test() {
+	_UNTRACKED_CERT=99
+	_STAGED_CERT=98
+	_MISSING_CERT=96
+	_MISSING_ARCHIVE=95
+	_UNTRACKED_ARCHIVE=94
+	_STAGED_ARCHIVE=93
+	_BRANCH_NOT_AHEAD=92
+	[[ "$PWD" != "$_BASE" ]] && return $WRONG_PWD
+	[[ ! -f "$_BASE/certificate.txt" ]] && return $_MISSING_CERT
+	_tutr_file_untracked certificate.txt && return $_UNTRACKED_CERT
+	if [[ -n ${ARCHIVE[@]} ]]; then
+		[[ ! -f "$_BASE/${ARCHIVE[0]}" ]] && return $_MISSING_ARCHIVE
+		_tutr_file_untracked ${ARCHIVE[0]} && return $_UNTRACKED_ARCHIVE
+		_tutr_file_staged ${ARCHIVE[0]} && return $_STAGED_ARCHIVE
+	fi
+	_tutr_file_staged certificate.txt && return $_STAGED_CERT
+	_tutr_branch_ahead && return 0
+	# Fell through, I'm not sure how a student could do this
+	return $_BRANCH_NOT_AHEAD
+}
+
+commit_certificate_hint() {
+	case $1 in
+		$_UNTRACKED_CERT)
+			cat <<-:
+			Add $(path certificate.txt) to the next commit with $(cmd git add certificate.txt).
+			:
+			;;
+
+		$_STAGED_CERT)
+			cat <<-:
+			Run $(cmd 'git commit -m "..."') to permanently save the certificate to the
+			$(_Git) repository.
+			:
+			;;
+
+		$_MISSING_CERT)
+			cat <<-:
+			Uh-oh!  Where did $(path certificate.txt) go?  It needs to be in the root of
+			this repository.  Find it and put it back here!
+
+			Alternatively, you can just re-create it by running
+			  $(cmd ./make-certificate.sh).
+			:
+			;;
+
+		$_UNTRACKED_ARCHIVE)
+			cat <<-:
+			Add $(path ${ARCHIVE[0]}) to the next commit with $(cmd git add ${ARCHIVE[0]}).
+			:
+			;;
+
+		$_STAGED_ARCHIVE)
+			cat <<-:
+			Run $(cmd 'git commit -m "..."') to permanently save the archive and
+			certificate in the $(_Git) repository.
+			:
+			;;
+
+		$_MISSING_ARCHIVE)
+			cat <<-:
+			Uh-oh!  Where did $(path ${ARCHIVE[@]}) go?  It needs to be in the root of
+			this repository.  Find it and put it back here!
+
+			Alternatively, you can just re-create it by running
+			  $(cmd ./make-certificate.sh).
+			:
+			;;
+
+		$_BRANCH_NOT_AHEAD)
+			cat <<-:
+			Something isn't right with your repository; I'll attempt to fix it...
+
+			:
+
+			git remote remove origin
+			git remote add -f origin $_SSH_REPO_URL
+			git branch --set-upstream-to=origin/master
+
+			cat <<-:
+
+			Now run $(cmd tutor test) to proceed.
+
+			If you get this message again, reach out to $_EMAIL for help.
+			:
+			;;
+
+		$WRONG_PWD)
+			_tutr_minimal_chdir_hint "$_BASE"
+			;;
+
+		*)
+			cat <<-:
+			As a reminder, the steps of your $(_Git) workflow are
+			  0. $(cmd git add certificate.txt)
+			  1. $(cmd 'git commit -m "Brief commit message"')
+			  2. $(cmd git push -u origin master)
+
+			:
+			;;
+
+	esac
 }
 
 
@@ -168,40 +337,53 @@ git_remote_rename_epilogue() {
 
 
 
-
 # Add a new repo URL under the name 'origin'
 git_remote_add_rw() {
 	git remote remove origin
 }
 
 git_remote_add_ff() {
-	git remote add origin git@gitlab.cs.usu.edu:chad/cs1440-chadwick-chad-assn$_A
+	local repo=/tmp/assn$_A
+	_tutr_info printf "'Just guessing... using $repo as the remote URL for origin'"
+	if [[ ! -d $repo ]]; then
+		git clone --bare "$_REPO_PATH" $repo
+	fi
+	git remote add origin $repo
 }
 
 git_remote_add_prologue() {
 	cat <<-:
-	Next, associate $(_origin) with a new GitLab URL that includes your name.
+	Next, associate $(_origin) with a new $(_GitPlat) URL that includes your name.
 
 	Recall that $(_Git) needs this URL to precisely match this pattern:
 	:
+	if [[ $_ENFORCE_NAMING_STANDARD == 0 ]]; then
+		if [[ -n $_GL_USERNAME ]]; then
+			cat <<-:
+			$(path git@${_GIT_REMOTE_HOST}:${_GL_USERNAME}/cs1440-LASTNAME-FIRSTNAME-assn$_A)
+			:
+		else
+			cat <<-:
+			$(path git@${_GIT_REMOTE_HOST}:USERNAME/cs1440-LASTNAME-FIRSTNAME-assn$_A)
 
-	if [[ -n $_GL_USERNAME ]]; then
+			* Replace $(cyn USERNAME) with your $(bld $_GIT_REMOTE_PLAT username)
+				* Your $(bld $_GIT_REMOTE_PLAT username) is most likely your $(bld Student ID)
+				* You can see your username by clicking on your avatar in the
+				upper-right corner of $_GIT_REMOTE_PLAT while logged in.
+			:
+		fi
 		cat <<-:
-		  $(path git@gitlab.cs.usu.edu:${_GL_USERNAME}/cs1440-LASTNAME-FIRSTNAME-assn$_A)
+		* Replace $(cyn LASTNAME-FIRSTNAME) with your $(bld real names)
 		:
 	else
 		cat <<-:
-		  $(path git@gitlab.cs.usu.edu:USERNAME/cs1440-LASTNAME-FIRSTNAME-assn$_A)
+		$(path git@${_GIT_REMOTE_HOST}:${_GL_USERNAME}/PROJECTNAME)
 
-		  * Replace $(cyn USERNAME) with your $(bld GitLab username)
-			* Your $(bld GitLab username) is most likely your $(bld A Number)
-			* You can see your username by clicking on your avatar in the
-			  upper-right corner of GitLab while logged in.
+		* Replace $(cyn PROJECTNAME) with the desired name for your project.
 		:
 	fi
 
 	cat <<-:
-	  * Replace $(cyn LASTNAME-FIRSTNAME) with your $(bld real names)
 
 	Run $(cmd git remote add origin URL) to make this change
 	:
@@ -220,8 +402,8 @@ git_remote_add_test() {
 	fi
 
 	_NO_ORIGIN=99
-	_ERIKS_USERNAME=98
-	_ERIKS_REPONAME=97
+	_IS_INSTRUCTOR_USERNAME=98
+	_INSTRUCTOR_REPONAME=97
 	_BAD_ASSN=96
 	_BAD_USERNAME=95
 	_BAD_SLASH=94
@@ -236,25 +418,42 @@ git_remote_add_test() {
 	if   [[ -z $URL ]]; then return $_NO_ORIGIN
 	elif [[ $URL =  https:* ]]; then return $_HTTPS_URL
 	elif [[ $URL != git@* ]]; then return $_NOT_SSH_URL
-	elif [[ $URL =  git@gitlab.cs.usu.edu/* ]]; then return $_BAD_SLASH
-	elif [[ $URL != *gitlab.cs.usu.edu* ]]; then return $_BAD_HOST
-	elif [[ $URL =  *:erik.falor/* ]]; then return $_ERIKS_USERNAME
-	elif [[ $URL =  *LASTNAME* || $URL =  *FIRSTNAME* ]]; then return $_LASTNAME_FIRSTNAME
-	elif [[ $URL != */cs1440-* ]]; then return $_BAD_COURSE
-	elif [[ $URL != *-assn$_A && $URL != *-assn$_A.git ]]; then return $_BAD_ASSN
-	elif [[ $URL =  */$_REPONAME* ]]; then return $_ERIKS_REPONAME
-	elif [[ $URL = git@gitlab.cs.usu.edu:@* ]]; then return $_AT_SIGN
-	elif [[ -n $_GL_USERNAME ]]; then
-		if [[ $URL = git@gitlab.cs.usu.edu:$_GL_USERNAME/cs1440-*-assn$_A ||
-		      $URL = git@gitlab.cs.usu.edu:$_GL_USERNAME/cs1440-*-assn$_A.git ]]; then
-			return 0
-		elif [[ $URL != git@gitlab.cs.usu.edu:$_GL_USERNAME* ]]; then
-			return $_BAD_USERNAME
+	elif [[ $URL =  git@$_GIT_REMOTE_HOST/* ]]; then return $_BAD_SLASH
+	elif [[ $URL != *$_GIT_REMOTE_HOST* ]]; then return $_BAD_HOST
+	elif [[ $URL =  *:$_INSTRUCTOR_USERNAME/* ]]; then return $_IS_INSTRUCTOR_USERNAME
+	elif [[ $URL =  */$_REPONAME* ]]; then return $_INSTRUCTOR_REPONAME
+	elif [[ $_ENFORCE_NAMING_STANDARD == 0 ]]; then
+		if [[ $URL != */cs1440-* ]]; then return $_BAD_COURSE
+		elif [[ $URL =  *LASTNAME* || $URL =  *FIRSTNAME* ]]; then return $_LASTNAME_FIRSTNAME
+		elif [[ $URL = git@$_GIT_REMOTE_HOST:@* ]]; then return $_AT_SIGN
+		elif [[ $URL != *-assn$_A &&
+				$URL != *-assn$_A.git ]]; then return $_BAD_ASSN
+		fi
+	fi
+
+	if [[ -n $_GL_USERNAME ]]; then
+		if [[ $_ENFORCE_NAMING_STANDARD == 0 ]]; then
+			if [[ $URL = git@$_GIT_REMOTE_HOST:$_GL_USERNAME/cs1440-*-assn$_A ||
+				$URL = git@$_GIT_REMOTE_HOST:$_GL_USERNAME/cs1440-*-assn$_A.git ]]; then
+				return 0
+			elif [[ $URL != git@$_GIT_REMOTE_HOST:$_GL_USERNAME* ]]; then
+				return $_BAD_USERNAME
+			fi
+		else
+			if [[ $URL = git@$_GIT_REMOTE_HOST:$_GL_USERNAME* ]]; then
+				return 0
+			fi
 		fi
 	elif [[ -z $_GL_USERNAME ]]; then
-		if [[ $URL = git@gitlab.cs.usu.edu:*/cs1440-*-assn$_A ||
-		      $URL = git@gitlab.cs.usu.edu:*/cs1440-*-assn$_A.git ]]; then
-		  return 0
+		if [[ $_ENFORCE_NAMING_STANDARD == 0 ]]; then
+			if [[ $URL = git@$_GIT_REMOTE_HOST:*/cs1440-*-assn$_A ||
+				$URL = git@$_GIT_REMOTE_HOST:*/cs1440-*-assn$_A.git ]]; then
+			return 0
+			fi
+		else
+			if [[ $URL = git@$_GIT_REMOTE_HOST:* ]]; then
+				return 0
+			fi
 		fi
 	fi
 	_tutr_generic_test -c git -n -d "$_BASE"
@@ -273,7 +472,7 @@ git_remote_add_hint() {
 			:
 			;;
 
-		$_ERIKS_USERNAME)
+		$_IS_INSTRUCTOR_USERNAME)
 			cat <<-:
 			$(_origin) points to the address of MY repo, not YOURS!
 
@@ -281,15 +480,22 @@ git_remote_add_hint() {
 			:
 			;;
 
-		$_ERIKS_REPONAME)
+		$_INSTRUCTOR_REPONAME)
 			cat <<-:
 			The name you gave your repo is wrong - it still contains MY name.
 
-			Your repository's name should include YOUR name and look like this:
-			  $(bld cs1440-LASTNAME-FIRSTNAME-assn$_A)
+			:
 
-			Also, replace $(cyn LASTNAME-FIRSTNAME) with your $(bld real names)
+			if [[ $_ENFORCE_NAMING_STANDARD == 0 ]]; then
+				cat <<-:
+				Your repository's name should include YOUR name and look like this:
+				$(bld cs1440-LASTNAME-FIRSTNAME-assn$_A)
 
+				Also, replace $(cyn LASTNAME-FIRSTNAME) with your $(bld real names)
+
+				:
+			fi
+			cat <<-:
 			Use $(cmd git remote remove origin) to erase this and try again.
 			:
 			;;
@@ -298,11 +504,17 @@ git_remote_add_hint() {
 			cat <<-:
 			Somehow I doubt those are your first and last names.
 
-			Your repository's name should include your $(bld real) name and look like this:
-			  $(bld cs1440-LASTNAME-FIRSTNAME-assn$_A)
+			:
+			if [[ $_ENFORCE_NAMING_STANDARD == 0 ]]; then
+				cat <<-:
+				Your repository's name should include your $(bld real) name and look like this:
+				$(bld cs1440-LASTNAME-FIRSTNAME-assn$_A)
 
-			Of course, replace $(cyn LASTNAME-FIRSTNAME) with your $(bld real names).
+				Of course, replace $(cyn LASTNAME-FIRSTNAME) with your $(bld real names).
 
+				:
+			fi
+			cat <<-:
 			Use $(cmd git remote remove origin) to erase it so you can try again.
 			:
 			;;
@@ -314,18 +526,32 @@ git_remote_add_hint() {
 			like this:
 
 			:
-			if [[ -n $_GL_USERNAME ]]; then
-				cat <<-:
-				$(path git@gitlab.cs.usu.edu:$_GL_USERNAME/cs1440-LASTNAME-FIRSTNAME-assn$_A))
-				:
+			if [[ $_ENFORCE_NAMING_STANDARD == 0 ]]; then
+				if [[ -n $_GL_USERNAME ]]; then
+					cat <<-:
+					$(path git@$_GIT_REMOTE_HOST:$_GL_USERNAME/cs1440-LASTNAME-FIRSTNAME-assn$_A))
+					:
+				else
+					cat <<-:
+					$(path git@$_GIT_REMOTE_HOST:USERNAME/cs1440-LASTNAME-FIRSTNAME-assn$_A))
+
+					Of course, replace $(cyn USERNAME) with your $(bld GitLab username).
+					:
+				fi
 			else
-				cat <<-:
-				$(path git@gitlab.cs.usu.edu:USERNAME/cs1440-LASTNAME-FIRSTNAME-assn$_A))
+				if [[ -n $_GL_USERNAME ]]; then
+					cat <<-:
+					$(path git@$_GIT_REMOTE_HOST:$_GL_USERNAME/REPONAME))
+					:
+				else
+					cat <<-:
+					$(path git@$_GIT_REMOTE_HOST:USERNAME/REPONAME))
 
-				Of course, replace $(cyn USERNAME) with your $(bld GitLab username).
-				:
+					Of course, replace $(cyn USERNAME) with your $(bld $_GIT_REMOTE_PLAT username).
+					:
+				fi
+
 			fi
-
 			cat <<-:
 
 			Use $(cmd git remote remove origin) to erase it and start over.
@@ -336,17 +562,29 @@ git_remote_add_hint() {
 			cat <<-:
 			You entered the wrong username into the URL.
 
-			Your GitLab username is $(bld $_GL_USERNAME), so the URL should
+			Your $_GIT_REMOTE_PLAT username is $(bld $_GL_USERNAME), so the URL should
 			look like this:
+			:
 
-			$(path git@gitlab.cs.usu.edu:$_GL_USERNAME/cs1440-LASTNAME-FIRSTNAME-assn$_A))
+			if [[ $_ENFORCE_NAMING_STANDARD == 0 ]]; then
+				cat <<-:
+				$(path git@$_GIT_REMOTE_HOST:$_GL_USERNAME/cs1440-LASTNAME-FIRSTNAME-assn$_A))
 
-			Also, replace $(cyn LASTNAME-FIRSTNAME) with your $(bld real names)
+				Also, replace $(cyn LASTNAME-FIRSTNAME) with your $(bld real names)
 
+				:
+			else
+				cat <<-:
+				$(path git@$_GIT_REMOTE_HOST:$_GL_USERNAME/REPONAME))
+
+				:
+			fi
+			cat <<-:
 			Use $(cmd git remote remove origin) to erase it and start over.
 			:
 			;;
 
+		# Unreachable if $_ENFORCE_NAMING_STANDARD == 0
 		$_BAD_ASSN)
 			cat <<-:
 			This repository's name must end in $(bld "-assn$_A"), signifying that it
@@ -359,7 +597,7 @@ git_remote_add_hint() {
 		$_BAD_SLASH)
 			cat <<-:
 			This SSH address will not work because there is a slash $(bld "'/'") between the
-			hostname $(ylw gitlab.cs.usu.edu) and your username.  (Use $(cmd git remote -v) to
+			hostname $(ylw $_GIT_REMOTE_HOST) and your username.  (Use $(cmd git remote -v) to
 			see for yourself).
 
 			Instead of a slash that character should be a colon $(bld "':'")
@@ -370,7 +608,7 @@ git_remote_add_hint() {
 
 		$_BAD_HOST)
 			cat <<-:
-			The hostname of the URL should be $(ylw gitlab.cs.usu.edu).
+			The hostname of the URL should be $(ylw $_GIT_REMOTE_HOST).
 
 			If you push your code to the wrong Git server it will not be submitted.
 
@@ -431,80 +669,6 @@ git_remote_add_hint() {
 }
 
 
-git_add_logr_ff() {
-	git add "$_BASE/.logr"
-}
-
-git_add_logr_rw() {
-	git restore --staged "$_BASE/.logr"
-}
-
-git_add_logr_prologue() {
-	cat <<-:
-	Your tutorial progress logs are stored in the directory $(path .logr).
-	Add and commit this directory to your repository.
-	:
-}
-
-git_add_logr_test() {
-	_UNTRACKED=99
-	_STAGED=98
-
-	if   [[ "$PWD" != "$_BASE" ]]; then return $WRONG_PWD
-	elif [[ ${_CMD[0]} = git && ${_CMD[1]} = status ]]; then return $PASS
-	elif [[ ! -d "$_BASE/.logr" ]]; then return 0
-	elif _tutr_noop; then return $PASS
-	elif _tutr_file_staged .logr/; then return $_STAGED
-	elif _tutr_file_untracked .logr/; then return $_UNTRACKED
-	elif _tutr_file_clean .logr/; then return 0
-	else _tutr_generic_test -c git -a add -a .logr
-	fi
-}
-
-git_add_logr_hint() {
-	case $1 in
-		$WRONG_PWD)
-			_tutr_minimal_chdir_hint "$_BASE"
-			;;
-
-		$_UNTRACKED)
-			cat <<-:
-			Run $(cmd git add .logr) to stage these files for commit.
-			Then use $(cmd 'git commit -m "..."') to record a new commit.
-			Be sure to provide a helpful commit message.
-			:
-			;;
-
-		$_STAGED)
-			cat <<-:
-			Now run $(cmd 'git commit -m "..."') to record a new commit.
-			Be sure to provide a helpful commit message.
-			:
-			;;
-
-		*)
-			_tutr_generic_hint $1 git "$_BASE"
-			;;
-	esac
-}
-
-git_add_logr_epilogue() {
-	if [[ ! -d "$_BASE/.logr" ]]; then
-		cat <<-:
-		You deleted the logs!?!  Why would you do such a thing?
-
-		:
-		_tutr_pressenter
-
-		cat <<-:
-		Oh well, moving on...
-
-		:
-		_tutr_pressenter
-	fi
-}
-
-
 make_certificate_ff() {
 	./make-certificate.sh
 }
@@ -536,39 +700,18 @@ make_certificate_hint() {
 
 
 
-push_certificate_ff() {
-	git add certificate.txt shell-logs*
-	git commit -m "committing certificate and log archive"
-}
 
-push_certificate_pre() {
-	if [[ -n $BASH ]]; then
-		local RESTORE_FAILGLOB=$(shopt -p failglob)
-		local RESTORE_NULLGLOB=$(shopt -p nullglob)
-		shopt -u failglob
-		shopt -s nullglob
-	elif [[ -n $ZSH_NAME ]]; then
-		emulate -L zsh
-		setopt null_glob local_options
-	fi
-	ARCHIVE=(*.zip *.tgz)
-	[[ -n $BASH ]] && eval $RESTORE_FAILGLOB && eval $RESTORE_FAILGLOB
+# There is no good way to rewind this action
+# push_certificate_rw() { }
+
+push_certificate_ff() {
+	git push -u origin master
 }
 
 push_certificate_prologue() {
-	if [[ -n ${ARCHIVE[@]} ]]; then
-		cat <<-:
-		The certificate comes in two parts
-		  - A text file named $(path certificate.txt)
-		  - An archive called $(path ${ARCHIVE[0]})
-
-		Commit and push the certificate and $(path ${ARCHIVE[0]}).
-		:
-	else
-		cat <<-:
-		Now commit and push $(path certificate.txt).
-		:
-	fi
+	cat <<-:
+	Finally, push your work to your new $(_origin).
+	:
 }
 
 push_certificate_test() {
@@ -642,7 +785,7 @@ push_certificate_hint() {
 
 		$_BRANCH_AHEAD)
 			cat <<-:
-			Now run $(cmd git push -u origin master) to submit the certificate to $(_GitLab).
+			Now run $(cmd git push -u origin master) to submit the certificate to $(_GitPlat).
 			:
 			;;
 
@@ -668,14 +811,14 @@ push_certificate_epilogue() {
 	if [[ -n ${ARCHIVE[@]} ]]; then
 		cat <<-:
 
-		Before you finish, go look at the repository on $(_GitLab) to make sure the
+		Before you finish, go look at the repository on $(_GitPlat) to make sure the
 		certificate and archive both arrived safely.
 
 		:
 	else
 		cat <<-:
 
-		Before you finish, go look at the repository on $(_GitLab) to make sure your
+		Before you finish, go look at the repository on $(_GitPlat) to make sure your
 		certificate arrived safely.
 
 		:
@@ -692,10 +835,11 @@ cleanup() {
 
 
 source main.sh && _tutr_begin \
+	make_certificate \
+	commit_certificate \
 	git_remote_rename \
 	git_remote_add \
-	make_certificate \
-	push_certificate
+	push_certificate \
 
 
 # vim: set filetype=sh noexpandtab tabstop=4 shiftwidth=4 textwidth=76 colorcolumn=76:
